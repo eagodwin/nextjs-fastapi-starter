@@ -1,8 +1,8 @@
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy import create_engine, MetaData, func, text
 from sqlalchemy.orm import sessionmaker, Session
-from models import Base, Exercise
-from schemas import ExerciseCreate, ExerciseResponse
+from .models import Base, Exercise
+from .schemas import ExerciseCreate, ExerciseResponse
 from contextlib import asynccontextmanager
 import os
 from dotenv import load_dotenv
