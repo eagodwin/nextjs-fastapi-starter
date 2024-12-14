@@ -9,8 +9,11 @@ from dotenv import load_dotenv
 import logging
 
 load_dotenv()
+os.getenv('DATABASE_URL')
+if not DATABASE_URL:
+    raise ValueError("DATABASE_URL is not set in the environment variables.")
 
-engine = create_engine(os.getenv('DATABASE_URL'))
+engine = create_engine()
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 @asynccontextmanager
