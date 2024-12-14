@@ -31,7 +31,7 @@ async def lifespan(app: FastAPI):
   print("Shutting down the app")
 
 
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(docs_url="/api/py/docs", openapi_url="/api/py/openapi.json")
 
 
 def get_db():
