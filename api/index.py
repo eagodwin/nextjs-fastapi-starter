@@ -5,6 +5,7 @@ from models import Base, Exercise
 from schemas import ExerciseCreate, ExerciseResponse
 from contextlib import asynccontextmanager
 import os
+from dotenv import load_dotenv
 import logging
 
 load_dotenv()
