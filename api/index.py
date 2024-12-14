@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 import logging
 
 load_dotenv()
-DATABASE_URL = os.getenv('DATABASE_URL_UNPOOLED')
+DATABASE_URL = os.getenv('TEMBO_DB_URL')
 if not DATABASE_URL:
     raise ValueError("DATABASE_URL is not set in the environment variables.")
 
@@ -51,7 +51,7 @@ def read_root():
 async def get_exercises(skip: int = 0,
                         limit: int = 10,
                         db: Session = Depends(get_db)):
-  return db.query(Exercise).offset(skip).limit(limit).all()
+  return {"message": db.query(Exercise).offset(skip).limit(limit).all()}
 
 
 @app.get("/api/py/exercises/autocomplete", response_model=list[ExerciseResponse])
