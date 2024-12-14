@@ -55,7 +55,7 @@ def read_root():
   return {"message": "Hello, FastAPI connected to Tembo DB on Replit!"}
 
 
-@app.get("/api/py/exercises/")
+@app.get("/api/py/exercises")
 async def get_exercises(skip: int = 0,
                         limit: int = 10,
                         db: Session = Depends(get_db)):
