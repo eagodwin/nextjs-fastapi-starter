@@ -64,8 +64,34 @@ async def get_exercises(skip: int = 0,
 
 @app.get("/api/py/exercises/autocomplete", response_model=list[ExerciseResponse])
 def autocomplete_exercises(name: str, db: Session = Depends(get_db)):
-  exercises = db.query(Exercise).filter(Exercise.name.ilike(f"{name}%")).all()
-  return exercises
+    results = db.query(
+        Exercise.primary_key,
+        Exercise.name,
+        Exercise.target_muscles,
+        Exercise.type,
+        Exercise.equipment,
+        Exercise.mechanics,
+        Exercise.force,
+        Exercise.experience_level,
+        Exercise.secondary_muscles,
+    ).filter(Exercise.name.ilike(f"%{name}%")).all()
+    exercises = [
+          ExerciseResponse(
+              primary_key=primary_key,
+              name=name,
+              target_muscles=target_muscles,
+              type=type,
+              equipment=equipment,
+              mechanics=mechanics,
+              force=force,
+              experience_level=experience_level,
+              secondary_muscles=secondary_muscles,
+              rank=0,
+              similarity=0
+          )
+          for primary_key, name, target_muscles, type, equipment, mechanics, force, experience_level, secondary_muscles in results
+    ]
+    return exercises
 
 #Exercise search by name using pgsql fts magic combined with fuzzy search
 @app.get("/api/py/exercises/name", response_model=list[ExerciseResponse])
