@@ -177,30 +177,30 @@ def create_exercise(exercise: ExerciseCreate, db: Session = Depends(get_db)):
   db.refresh(new_exercise)
   return new_exercise
 
-@app.post("/api/py/food/scan/")
-async def scan_barcode(barcode_img: UploadFile = File(...)):
-  try:
-    contents = await barcode_img.read()
-    nparr = np.frombuffer(contents, np.uint8)
-    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+# @app.post("/api/py/food/scan/")
+# async def scan_barcode(barcode_img: UploadFile = File(...)):
+#   try:
+#     contents = await barcode_img.read()
+#     nparr = np.frombuffer(contents, np.uint8)
+#     img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
     
-    if img is None:
-      raise HTTPException(status_code=400, detail="Invalid image file");
+#     if img is None:
+#       raise HTTPException(status_code=400, detail="Invalid image file");
   
-    barcodes = decode(img);
+#     barcodes = decode(img);
 
-    if not barcodes:
-      raise HTTPException(status_code=401, detail="No barcodes detected");
+#     if not barcodes:
+#       raise HTTPException(status_code=401, detail="No barcodes detected");
     
-    # TODO: For now only care about first barcode in list, may want to revisit
-    for barcode in barcodes:
-      if barcode.data != "":
-        return {"barcode": barcode.data.decode("utf-8")}
+#     # TODO: For now only care about first barcode in list, may want to revisit
+#     for barcode in barcodes:
+#       if barcode.data != "":
+#         return {"barcode": barcode.data.decode("utf-8")}
 
 
-    return {"message": "Food scan not implemented yet!"}
-  except Exception as e:
-    raise HTTPException(status_code=500, detail=str(e));
+#     return {"message": "Food scan not implemented yet!"}
+#   except Exception as e:
+#     raise HTTPException(status_code=500, detail=str(e));
 
 if __name__ == "__main__":
   import uvicorn
