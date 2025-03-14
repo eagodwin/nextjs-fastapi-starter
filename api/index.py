@@ -13,11 +13,11 @@ from pyzbar.pyzbar import decode
 import numpy as np
 
 load_dotenv()
-TEMBO_DB_URL = os.getenv('TEMBO_DB_URL')
-if not TEMBO_DB_URL:
+DATABASE_URL = os.getenv('DATABASE_URL')
+if not DATABASE_URL:
     raise ValueError("DATABASE_URL_UNPOOLED is not set in the environment variables.")
 
-engine = create_engine(TEMBO_DB_URL, connect_args={"sslmode":"require"})
+engine = create_engine(DATABASE_URL, connect_args={"sslmode":"require"})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 @asynccontextmanager
