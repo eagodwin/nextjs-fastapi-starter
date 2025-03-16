@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 import logging
 
 load_dotenv()
-TEMBO_DB_URL = os.getenv('TEMBO_DB_URL')
+TEMBO_DB_URL = os.getenv('DATABASE_URL')
 if not TEMBO_DB_URL:
     raise ValueError("DATABASE_URL_UNPOOLED is not set in the environment variables.")
 
@@ -114,12 +114,13 @@ def get_exercises_by_name(name: str = '', db: Session = Depends(get_db)):
           Exercise.experience_level,
           Exercise.secondary_muscles,
           func.ts_rank_cd(func.to_tsvector(Exercise.name), func.to_tsquery(tsquery_name)).label('rank'),
-          func.similarity(Exercise.name, name).label('similarity')
+          func.similarity(Exercise.name, name).label('similarity'),
+          Exercise.popularity
       ).filter(
           func.to_tsvector(Exercise.name).op('@@')(func.to_tsquery(tsquery_name)) |
           Exercise.name.op('%')(name)
       ).order_by(
-          text('rank DESC'), text('similarity DESC')
+        text('popularity DESC'),  text('rank DESC'), text('similarity DESC'), 
       )
 
       # Execute the query
@@ -138,9 +139,10 @@ def get_exercises_by_name(name: str = '', db: Session = Depends(get_db)):
               experience_level=experience_level,
               secondary_muscles=secondary_muscles,
               rank=rank,
-              similarity=similarity
+              similarity=similarity,
+              popularity=popularity,
           )
-          for primary_key, name, target_muscles, type, equipment, mechanics, force, experience_level, secondary_muscles, rank,  similarity in results
+          for primary_key, name, target_muscles, type, equipment, mechanics, force, experience_level, secondary_muscles, rank, similarity, popularity in results
       ]
 
       return exercises

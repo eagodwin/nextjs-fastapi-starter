@@ -9,6 +9,7 @@ class ExerciseBase(BaseModel):
   force: str
   experience_level: str
   secondary_muscles: str
+  popularity: int
 
 class ExerciseCreate(ExerciseBase):
   pass
@@ -25,5 +26,6 @@ class ExerciseResponse(ExerciseBase):
   secondary_muscles: str
   rank: float
   similarity: float
+  popularity: int
   class Config:
     orm_mode = True

@@ -14,4 +14,5 @@ class Exercise(Base):
   force = Column(String)
   experience_level = Column(String)
   secondary_muscles = Column(String)
+  popularity = Column(Integer)
   primary_key = Column(Integer, primary_key=True, nullable=False, autoincrement=True)
