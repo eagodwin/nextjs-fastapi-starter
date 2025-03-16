@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 import logging
 
 load_dotenv()
-TEMBO_DB_URL = os.getenv('DATABASE_URL')
+TEMBO_DB_URL = os.getenv('DATABASE_URL_UNPOOLED')
 if not TEMBO_DB_URL:
     raise ValueError("DATABASE_URL_UNPOOLED is not set in the environment variables.")
 
