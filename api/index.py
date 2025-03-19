@@ -62,23 +62,23 @@ async def get_exercises(skip: int = 0,
   try:    
     query = db.query(Exercise)
     results = query.all()
-
+    print(results);
     exercises = [
         ExerciseResponse(
-            primary_key=primary_key,
-            name=name,
-            target_muscles=target_muscles,
-            type=type,
-            equipment=equipment,
-            mechanics=mechanics,
-            force=force,
-            experience_level=experience_level,
-            secondary_muscles=secondary_muscles,
-            rank=rank,
-            similarity=similarity,
-            popularity=popularity,
+            primary_key=exercise.primary_key,
+            name=exercise.name,
+            target_muscles=exercise.target_muscles,
+            type=exercise.type,
+            equipment=exercise.equipment,
+            mechanics=exercise.mechanics,
+            force=exercise.force,
+            experience_level=exercise.experience_level,
+            secondary_muscles=exercise.secondary_muscles,
+            rank=-1,
+            similarity=-1,
+            popularity=exercise.popularity,
         )
-        for primary_key, name, target_muscles, type, equipment, mechanics, force, experience_level, secondary_muscles, rank, similarity, popularity in results
+        for exercise in results
     ]
     return exercises;
   except Exception as e:
@@ -150,7 +150,6 @@ def get_exercises_by_name(name: str = '', db: Session = Depends(get_db)):
 
       # Execute the query
       results = query.all()
-
       # Transform the results into ExerciseResponse format
       exercises = [
           ExerciseResponse(
