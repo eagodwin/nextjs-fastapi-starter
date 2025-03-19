@@ -60,7 +60,7 @@ async def get_exercises(skip: int = 0,
                         limit: int = 10,
                         db: Session = Depends(get_db)):
   try:    
-    query = db.query(Exercise)
+    query = db.query(Exercise).order_by(text('popularity DESC'))
     results = query.all()
     print(results);
     exercises = [
