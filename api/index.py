@@ -59,7 +59,32 @@ def read_root():
 async def get_exercises(skip: int = 0,
                         limit: int = 10,
                         db: Session = Depends(get_db)):
-  return {"message": db.query(Exercise).offset(skip).limit(limit).all()}
+  try:    
+    query = db.query(Exercise)
+    results = query.all()
+
+    exercises = [
+        ExerciseResponse(
+            primary_key=primary_key,
+            name=name,
+            target_muscles=target_muscles,
+            type=type,
+            equipment=equipment,
+            mechanics=mechanics,
+            force=force,
+            experience_level=experience_level,
+            secondary_muscles=secondary_muscles,
+            rank=rank,
+            similarity=similarity,
+            popularity=popularity,
+        )
+        for primary_key, name, target_muscles, type, equipment, mechanics, force, experience_level, secondary_muscles, rank, similarity, popularity in results
+    ]
+    return exercises;
+  except Exception as e:
+    logging.error(f"Error querying database: {e}")
+    raise HTTPException(status_code=500, detail="Database error")
+
 
 
 @app.get("/api/py/exercises/autocomplete", response_model=list[ExerciseResponse])
