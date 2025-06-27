@@ -54,6 +54,9 @@ def get_db():
 def read_root():
   return {"message": "Hello, FastAPI connected to Tembo DB on Replit!"}
 
+@app.get('/api/py/spotify/client')
+async def get_client_id():
+  return os.getenv('SPOTIFY_CLIENT_ID')
 
 @app.get("/api/py/exercises")
 async def get_exercises(skip: int = 0,
@@ -122,54 +125,56 @@ def autocomplete_exercises(name: str, db: Session = Depends(get_db)):
 @app.get("/api/py/exercises/name", response_model=list[ExerciseResponse])
 def get_exercises_by_name(name: str = '', db: Session = Depends(get_db)):
   try:
-    if name == '':
-      query = db.query(Exercise)
-      exercises = query.all()
-      return exercises
-    else:
-      tsquery_name = ' & '.join(name.split())
-      query = db.query(
-          Exercise.primary_key,
-          Exercise.name,
-          Exercise.target_muscles,
-          Exercise.type,
-          Exercise.equipment,
-          Exercise.mechanics,
-          Exercise.force,
-          Exercise.experience_level,
-          Exercise.secondary_muscles,
-          func.ts_rank_cd(func.to_tsvector(Exercise.name), func.to_tsquery(tsquery_name)).label('rank'),
-          func.similarity(Exercise.name, name).label('similarity'),
-          Exercise.popularity
-      ).filter(
-          func.to_tsvector(Exercise.name).op('@@')(func.to_tsquery(tsquery_name)) |
-          Exercise.name.op('%')(name)
-      ).order_by(
-        text('popularity DESC'),  text('rank DESC'), text('similarity DESC'), 
-      )
+    if not name:
+      return db.query(Exercise).order_by(Exercise.popularity.desc()).all()
+    tsquery_name = ' & '.join(name.split())
+    rank = func.ts_rank_cd(
+      func.to_tsvector(Exercise.name), 
+      func.to_tsquery(tsquery_name)
+    ).label('rank')
+    similarity = func.similarity(Exercise.name, name).label('similarity')
+    query = db.query(
+        Exercise.primary_key,
+        Exercise.name,
+        Exercise.target_muscles,
+        Exercise.type,
+        Exercise.equipment,
+        Exercise.mechanics,
+        Exercise.force,
+        Exercise.experience_level,
+        Exercise.secondary_muscles,
+        rank,
+        similarity,
+        Exercise.popularity
+    ).filter(
+        func.to_tsvector(Exercise.name).op('@@')(func.to_tsquery(tsquery_name)) |
+        Exercise.name.op('%')(name)
+    ).order_by(
+      text('similarity DESC'), text('popularity DESC'),  text('rank DESC')  
+    )
 
-      # Execute the query
-      results = query.all()
-      # Transform the results into ExerciseResponse format
-      exercises = [
-          ExerciseResponse(
-              primary_key=primary_key,
-              name=name,
-              target_muscles=target_muscles,
-              type=type,
-              equipment=equipment,
-              mechanics=mechanics,
-              force=force,
-              experience_level=experience_level,
-              secondary_muscles=secondary_muscles,
-              rank=rank,
-              similarity=similarity,
-              popularity=popularity,
-          )
-          for primary_key, name, target_muscles, type, equipment, mechanics, force, experience_level, secondary_muscles, rank, similarity, popularity in results
-      ]
+    # Execute the query
+    results = query.all()
+    # Transform the results into ExerciseResponse format
+    exercises = [
+        ExerciseResponse(
+            primary_key=primary_key,
+            name=name,
+            target_muscles=target_muscles,
+            type=type,
+            equipment=equipment,
+            mechanics=mechanics,
+            force=force,
+            experience_level=experience_level,
+            secondary_muscles=secondary_muscles,
+            rank=rank,
+            similarity=similarity,
+            popularity=popularity,
+        )
+        for primary_key, name, target_muscles, type, equipment, mechanics, force, experience_level, secondary_muscles, rank, similarity, popularity in results
+    ]
 
-      return exercises
+    return exercises
   except Exception as e:
       logging.error(f"Error querying database: {e}")
       raise HTTPException(status_code=500, detail="Database error")
