@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import create_engine, MetaData, func, or_, text
 from sqlalchemy.orm import sessionmaker, Session
@@ -57,7 +57,7 @@ def read_root():
 
 @app.get("/api/py/exercises")
 async def get_exercises(name: Optional[str] = None,
-                        muscles: Optional[List[str]] = None,
+                        muscles: Optional[List[str]] = Query(None),
                         skip: int = 0,
                         limit: int = 10,
                         db: Session = Depends(get_db)):
