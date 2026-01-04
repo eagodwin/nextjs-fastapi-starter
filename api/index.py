@@ -1,12 +1,13 @@
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import create_engine, MetaData, func, text
+from sqlalchemy import create_engine, MetaData, func, or_, text
 from sqlalchemy.orm import sessionmaker, Session
 from .models import Base, Exercise
 from .schemas import ExerciseCreate, ExerciseResponse
 from contextlib import asynccontextmanager
 import os
 from dotenv import load_dotenv
+from typing import List, Optional
 import logging
 
 load_dotenv()
@@ -54,18 +55,60 @@ def get_db():
 def read_root():
   return {"message": "Hello, FastAPI connected to Tembo DB on Replit!"}
 
-@app.get('/api/py/spotify/client')
-async def get_client_id():
-  return os.getenv('SPOTIFY_CLIENT_ID')
-
 @app.get("/api/py/exercises")
-async def get_exercises(skip: int = 0,
+async def get_exercises(name: Optional[str] = None,
+                        muscles: Optional[List[str]] = None,
+                        skip: int = 0,
                         limit: int = 10,
                         db: Session = Depends(get_db)):
+  
+
+  # Search exercises by name, full-text and trigram matching stuff
+  tsquery_name = ' & '.join(name.split()) if name else ''
+  rank = func.ts_rank_cd(
+    func.to_tsvector(Exercise.name), 
+    func.to_tsquery(tsquery_name) if tsquery_name else func.to_tsquery('')
+  ).label('rank')
+  similarity = func.similarity(Exercise.name, name or '').label('similarity')
+
   try:    
-    query = db.query(Exercise).order_by(text('popularity DESC'))
+    query = db.query(
+        Exercise.primary_key,
+        Exercise.name,
+        Exercise.target_muscles,
+        Exercise.type,
+        Exercise.equipment,
+        Exercise.mechanics,
+        Exercise.force,
+        Exercise.experience_level,
+        Exercise.secondary_muscles,
+        rank,
+        similarity,
+        Exercise.popularity
+    )
+    
+    if name:
+      query = query.filter(
+        func.to_tsvector(Exercise.name).op('@@')(func.to_tsquery(tsquery_name)) |
+        Exercise.name.op('%')(name)
+      )
+    if muscles:
+      muscle_filters = []
+      for muscle in muscles:
+        # Check if the string exists in either target_muscles or secondary_muscles
+        muscle_filters.append(Exercise.target_muscles.contains([muscle]))
+        muscle_filters.append(Exercise.secondary_muscles.contains([muscle]))
+      
+      query = query.filter(or_(*muscle_filters))
+    
+    query = query.order_by(
+      text('similarity DESC'), 
+      text('popularity DESC'),  
+      text('rank DESC')  
+    )
+
     results = query.all()
-    print(results);
+    
     exercises = [
         ExerciseResponse(
             primary_key=exercise.primary_key,
@@ -122,62 +165,59 @@ def autocomplete_exercises(name: str, db: Session = Depends(get_db)):
     return exercises
 
 #Exercise search by name using pgsql fts magic combined with fuzzy search
-@app.get("/api/py/exercises/name", response_model=list[ExerciseResponse])
-def get_exercises_by_name(name: str = '', db: Session = Depends(get_db)):
-  try:
-    if not name:
-      return db.query(Exercise).order_by(Exercise.popularity.desc()).all()
-    tsquery_name = ' & '.join(name.split())
-    rank = func.ts_rank_cd(
-      func.to_tsvector(Exercise.name), 
-      func.to_tsquery(tsquery_name)
-    ).label('rank')
-    similarity = func.similarity(Exercise.name, name).label('similarity')
-    query = db.query(
-        Exercise.primary_key,
-        Exercise.name,
-        Exercise.target_muscles,
-        Exercise.type,
-        Exercise.equipment,
-        Exercise.mechanics,
-        Exercise.force,
-        Exercise.experience_level,
-        Exercise.secondary_muscles,
-        rank,
-        similarity,
-        Exercise.popularity
-    ).filter(
-        func.to_tsvector(Exercise.name).op('@@')(func.to_tsquery(tsquery_name)) |
-        Exercise.name.op('%')(name)
-    ).order_by(
-      text('similarity DESC'), text('popularity DESC'),  text('rank DESC')  
-    )
+# @app.get("/api/py/exercises/name", response_model=list[ExerciseResponse])
+# def get_exercises_by_name(name: str = '', db: Session = Depends(get_db)):
+#   try:
+#     if not name:
+#       return db.query(Exercise).order_by(Exercise.popularity.desc()).all()
+    
+#     query = db.query(
+#         Exercise.primary_key,
+#         Exercise.name,
+#         Exercise.target_muscles,
+#         Exercise.type,
+#         Exercise.equipment,
+#         Exercise.mechanics,
+#         Exercise.force,
+#         Exercise.experience_level,
+#         Exercise.secondary_muscles,
+#         rank,
+#         similarity,
+#         Exercise.popularity
+#     ).filter(
+#         func.to_tsvector(Exercise.name).op('@@')(func.to_tsquery(tsquery_name)) |
+#         Exercise.name.op('%')(name)
+#     ).order_by(
+#       text('similarity DESC'), 
+#       text('popularity DESC'),  
+#       text('rank DESC')  
+#     )
 
-    # Execute the query
-    results = query.all()
-    # Transform the results into ExerciseResponse format
-    exercises = [
-        ExerciseResponse(
-            primary_key=primary_key,
-            name=name,
-            target_muscles=target_muscles,
-            type=type,
-            equipment=equipment,
-            mechanics=mechanics,
-            force=force,
-            experience_level=experience_level,
-            secondary_muscles=secondary_muscles,
-            rank=rank,
-            similarity=similarity,
-            popularity=popularity,
-        )
-        for primary_key, name, target_muscles, type, equipment, mechanics, force, experience_level, secondary_muscles, rank, similarity, popularity in results
-    ]
+#     # Execute the query
+#     results = query.all()
+#     # Transform the results into ExerciseResponse format
+#     exercises = [
+#         ExerciseResponse(
+#             primary_key=primary_key,
+#             name=name,
+#             target_muscles=target_muscles,
+#             type=type,
+#             equipment=equipment,
+#             mechanics=mechanics,
+#             force=force,
+#             experience_level=experience_level,
+#             secondary_muscles=secondary_muscles,
+#             rank=rank,
+#             similarity=similarity,
+#             popularity=popularity,
+#         )
+#         for primary_key, name, target_muscles, type, equipment, mechanics, force, experience_level, secondary_muscles, rank, similarity, popularity in results
+#     ]
 
-    return exercises
-  except Exception as e:
-      logging.error(f"Error querying database: {e}")
-      raise HTTPException(status_code=500, detail="Database error")
+#     return exercises
+#   except Exception as e:
+#       logging.error(f"Error querying database: {e}")
+#       raise HTTPException(status_code=500, detail="Database error")
     
 
 
