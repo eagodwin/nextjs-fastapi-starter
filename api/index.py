@@ -96,8 +96,8 @@ async def get_exercises(name: Optional[str] = None,
       muscle_filters = []
       for muscle in muscles:
         # Check if the string exists in either target_muscles or secondary_muscles
-        muscle_filters.append(Exercise.target_muscles.contains([muscle]))
-        muscle_filters.append(Exercise.secondary_muscles.contains([muscle]))
+        muscle_filters.append(Exercise.target_muscles.ilike(f"%{muscle}%"))
+        muscle_filters.append(Exercise.secondary_muscles.ilike(f"%{muscle}%"))
       
       query = query.filter(or_(*muscle_filters))
     
