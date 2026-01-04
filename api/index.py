@@ -92,14 +92,20 @@ async def get_exercises(name: Optional[str] = None,
         func.to_tsvector(Exercise.name).op('@@')(func.to_tsquery(tsquery_name)) |
         Exercise.name.op('%')(name)
       )
+
     if muscles:
-      muscle_filters = []
-      for muscle in muscles:
-        # Check if the string exists in either target_muscles or secondary_muscles
-        muscle_filters.append(Exercise.target_muscles.ilike(f"%{muscle}%"))
-        muscle_filters.append(Exercise.secondary_muscles.ilike(f"%{muscle}%"))
-      
-      query = query.filter(or_(*muscle_filters))
+      # normalize muscle names (strip, lower)
+      muscles = [m.strip() for m in muscles if m.strip()]
+      if muscles:
+        query = query.filter(
+          or_(
+            *[
+              Exercise.target_muscles.ilike(f"%{muscle}%") |
+              Exercise.secondary_muscles.ilike(f"%{muscle}%")
+              for muscle in muscles
+            ]
+          )
+        )      
     
     query = query.order_by(
       text('similarity DESC'), 
