@@ -15,7 +15,7 @@ TEMBO_DB_URL = os.getenv('DATABASE_URL_UNPOOLED')
 if not TEMBO_DB_URL:
     raise ValueError("DATABASE_URL_UNPOOLED is not set in the environment variables.")
 
-engine = create_engine(TEMBO_DB_URL, connect_args={"sslmode":"require"})
+engine = create_engine(TEMBO_DB_URL, connect_args={"sslmode":"require"}, pool_pre_ping=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 @asynccontextmanager
@@ -79,12 +79,15 @@ async def get_exercises(name: Optional[str] = None,
         Exercise.type,
         Exercise.equipment,
         Exercise.mechanics,
-        Exercise.force,
+        Exercise.force_type,
         Exercise.experience_level,
         Exercise.secondary_muscles,
         rank,
         similarity,
-        Exercise.popularity
+        Exercise.popularity,
+        Exercise.anatomical_precision,
+        Exercise.biomechanical_profile,
+        Exercise.execution
     )
     
     if name:
@@ -123,12 +126,16 @@ async def get_exercises(name: Optional[str] = None,
             type=exercise.type,
             equipment=exercise.equipment,
             mechanics=exercise.mechanics,
-            force=exercise.force,
+            force_type=exercise.force_type,
             experience_level=exercise.experience_level,
             secondary_muscles=exercise.secondary_muscles,
             rank=-1,
             similarity=-1,
             popularity=exercise.popularity,
+            anatomical_precision=exercise.anatomical_precision,
+            biomechanical_profile=exercise.biomechanical_profile,
+            execution=exercise.execution
+
         )
         for exercise in results
     ]
